@@ -56,8 +56,10 @@ def run_embedding(
     Returns:
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
-
-    raise NotImplementedError
+    device = token_ids.device
+    model = Embedding(vocab_size, d_model, device=device) # leave dtype for None to use its default float() in torch
+    model.load_state_dict({'weight': weights})
+    return model(token_ids)
 
 
 def run_swiglu(
