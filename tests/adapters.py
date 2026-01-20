@@ -33,7 +33,7 @@ def run_linear(
 
     device, dtype = in_features.device, in_features.dtype
     model = Linear(d_in, d_out, device=device, dtype=dtype)
-    model.load_state_dict({'weight': weights})
+    model.load_state_dict({'weights': weights})
     return model(in_features)
 
 
@@ -58,7 +58,7 @@ def run_embedding(
     """
     device = token_ids.device
     model = Embedding(vocab_size, d_model, device=device) # leave dtype for None to use its default float() in torch
-    model.load_state_dict({'weight': weights})
+    model.load_state_dict({'weights': weights})
     return model(token_ids)
 
 
@@ -386,7 +386,10 @@ def run_rmsnorm(
         Float[Tensor,"... d_model"]: Tensor of with the same shape as `in_features` with the output of running
         RMSNorm of the `in_features`.
     """
-    raise NotImplementedError
+    device = in_features.device
+    model = RMSNorm(d_model, eps, device)
+    model.load_state_dict({'weights': weights})
+    return model(in_features)
 
 
 def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
