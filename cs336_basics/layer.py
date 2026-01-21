@@ -51,3 +51,23 @@ class RMSNorm(nn.Module):
         result = x * self.weights / rms
 
         return result.to(in_dtype)
+
+class SiLU(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * torch.sigmoid(x)
+
+class Softmax(nn.Module):
+    def __init__(self, dim: int):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # We use torch.amax instead of torch.max here
+        # as torch.max(input, dim, keepdim=False, *, out=None) returns a named tuple, not Tensor
+        x_max = torch.amax(x, dim=self.dim, keepdim=True)
+        exp = (x - x_max).exp()
+        return exp / exp.sum(dim=self.dim, keepdim=True)
+
