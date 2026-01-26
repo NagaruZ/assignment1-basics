@@ -120,7 +120,8 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    raise NotImplementedError
+    model = ScaledDotProductAttention(d_k=Q.size(-1))
+    return model(Q, K, V, mask)
 
 
 def run_multihead_self_attention(
@@ -411,8 +412,7 @@ def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
         Float[Tensor,"..."]: of with the same shape as `in_features` with the output of applying
         SiLU to each element.
     """
-    model = SiLU()
-    return model(in_features)
+    return silu(in_features)
 
 
 def run_get_batch(
@@ -451,8 +451,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    model = Softmax(dim=dim)
-    return model(in_features)
+    return softmax(in_features)
 
 
 def run_cross_entropy(

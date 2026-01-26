@@ -77,15 +77,25 @@ class SwiGLU(nn.Module):
         w3x = self.linear3(x)
         return self.linear2(silu(w1x) * w3x)
 
-class Softmax(nn.Module):
-    def __init__(self, dim: int):
+class ScaledDotProductAttention(nn.Module):
+    def __init__(
+            self, d_k: int
+        ):
         super().__init__()
-        self.dim = dim
+        self.scale = 1.0 / math.sqrt(d_k)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # We use torch.amax instead of torch.max here
-        # as torch.max(input, dim, keepdim=False, *, out=None) returns a named tuple, not Tensor
-        x_max = torch.amax(x, dim=self.dim, keepdim=True)
-        exp = (x - x_max).exp()
-        return exp / exp.sum(dim=self.dim, keepdim=True)
+    def forward(
+            self,
+            Q: Float[Tensor, " ... queries d_k"],
+            K: Float[Tensor, " ... keys d_k"],
+            V: Float[Tensor, " ... values d_v"],
+            mask: Bool[Tensor, " ... queries keys"] | None = None,
+        ) -> Float[Tensor, " ... queries d_v"]:
+        attn_scores = einsum(Q, K, "... queries d_k, ... keys d_k -> ... queries keys") * self.scale
 
+        if mask is not None:
+            attn_scores = attn_scores.masked_fill(~mask, float("-inf"))
+        
+        attn_probs = softmax(attn_scores, dim=-1)
+
+        return einsum(attn_probs, V, "... queries values, ... values d_v -> ... queries d_v")
