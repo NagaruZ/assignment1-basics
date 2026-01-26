@@ -1,7 +1,9 @@
 import torch
-from torch import nn
+from torch import nn, Tensor
 from torch.nn import init
 from einops import rearrange, einsum
+from jaxtyping import Bool, Float, Int
+import math
 
 class Linear(nn.Module):
     def __init__(self, in_features: int, out_features: int, device=None, dtype=None):
@@ -52,12 +54,28 @@ class RMSNorm(nn.Module):
 
         return result.to(in_dtype)
 
-class SiLU(nn.Module):
-    def __init__(self):
-        super().__init__()
+def silu(x: torch.Tensor) -> torch.Tensor:
+    return x * torch.sigmoid(x)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x * torch.sigmoid(x)
+def softmax(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
+    # We use torch.amax instead of torch.max here
+    # as torch.max(input, dim, keepdim=False, *, out=None) returns a named tuple, not Tensor
+    x_max = torch.amax(x, dim=dim, keepdim=True)
+    exp = (x - x_max).exp()
+    return exp / exp.sum(dim=dim, keepdim=True)
+
+class SwiGLU(nn.Module):
+    def __init__(self, d_model, d_ff, device=None, dtype=None):
+        super().__init__()
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        self.linear1 = Linear(d_model, d_ff, **factory_kwargs)
+        self.linear2 = Linear(d_ff, d_model, **factory_kwargs)
+        self.linear3 = Linear(d_model, d_ff, **factory_kwargs)
+
+    def forward(self, x: Float[Tensor, "... d_model"]) -> Float[Tensor, "... d_model"]:
+        w1x = self.linear1(x)
+        w3x = self.linear3(x)
+        return self.linear2(silu(w1x) * w3x)
 
 class Softmax(nn.Module):
     def __init__(self, dim: int):

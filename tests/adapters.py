@@ -10,6 +10,7 @@ from jaxtyping import Bool, Float, Int
 from torch import Tensor
 
 from cs336_basics.layer import *
+from cs336_basics.utils import *
 
 
 def run_linear(
@@ -91,7 +92,14 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
-    raise NotImplementedError
+    device, dtype = in_features.device, in_features.dtype
+    swiglu = SwiGLU(d_model, d_ff, device=device, dtype=dtype)
+    swiglu.load_state_dict({
+        'linear1.weights': w1_weight,
+        'linear2.weights': w2_weight,
+        'linear3.weights': w3_weight
+    })
+    return swiglu(in_features)
 
 
 def run_scaled_dot_product_attention(
